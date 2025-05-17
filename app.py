@@ -2,42 +2,18 @@ from flask import Flask, jsonify, request
 import stripe
 import os
 from datetime import datetime, timedelta
-from stripe_keys import STRIPE_SECRET_KEY, STRIPE_PUBLIC_KEY
-import sqlite3
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Habilita CORS para todas as rotas
 
-# Configuração do Stripe
+# Configuração do Stripe usando variáveis de ambiente
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+
 print("\n=== CONFIGURAÇÃO DO STRIPE ===")
-print("Chave secreta:", STRIPE_SECRET_KEY[:10] + "..." if STRIPE_SECRET_KEY else "Não definida")
+print("Chave secreta:", stripe.api_key[:10] + "..." if stripe.api_key else "Não definida")
 print("Chave pública:", STRIPE_PUBLIC_KEY[:10] + "..." if STRIPE_PUBLIC_KEY else "Não definida")
-
-stripe.api_key = STRIPE_SECRET_KEY
-
-def get_db_connection():
-    conn = sqlite3.connect('faturas.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    conn = get_db_connection()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS faturas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            numero_fatura TEXT NOT NULL,
-            valor REAL NOT NULL,
-            email TEXT NOT NULL,
-            nome TEXT NOT NULL,
-            cpf TEXT NOT NULL,
-            status TEXT DEFAULT 'pendente',
-            checkout_id TEXT,
-            data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            data_vencimento TIMESTAMP,
-            data_pagamento TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
 
 @app.route('/gerar-boleto', methods=['POST'])
 def gerar_boleto():
@@ -229,17 +205,8 @@ def webhook():
         
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
-            checkout_id = session['id']
-            
-            # Atualiza o status da fatura para pago
-            conn = get_db_connection()
-            conn.execute('''
-                UPDATE faturas 
-                SET status = 'pago', data_pagamento = CURRENT_TIMESTAMP
-                WHERE checkout_id = ?
-            ''', (checkout_id,))
-            conn.commit()
-            conn.close()
+            # Removendo a lógica de atualização do banco de dados
+            pass
             
         return jsonify({'status': 'success'})
         
@@ -247,5 +214,4 @@ def webhook():
         return jsonify({'erro': str(e)}), 400
 
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True) 
