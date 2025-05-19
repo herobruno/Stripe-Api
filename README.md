@@ -6,13 +6,14 @@ API para geração e verificação de boletos bancários usando o Stripe.
 
 1. Instale as dependências:
 ```bash
-pip install flask stripe
+pip install -r requirements.txt
 ```
 
-2. Configure suas chaves do Stripe em `stripe_keys.py`:
-```python
-STRIPE_SECRET_KEY = 'sk_test_...'  # Chave secreta do Stripe
-STRIPE_PUBLIC_KEY = 'pk_test_...'  # Chave pública do Stripe
+2. Configure suas variáveis de ambiente:
+```bash
+# .env
+STRIPE_SECRET_KEY=sk_test_...  # Chave secreta do Stripe
+STRIPE_PUBLIC_KEY=pk_test_...  # Chave pública do Stripe
 ```
 
 3. Execute o servidor:
@@ -125,6 +126,30 @@ Verifica o status de um boleto existente.
 }
 ```
 
+### 3. Webhook
+Endpoint para receber notificações do Stripe sobre eventos de pagamento.
+
+**URL:** `/webhook`  
+**Método:** `POST`  
+**Headers:**
+- `Stripe-Signature`: Assinatura do webhook do Stripe
+
+#### Resposta de Sucesso
+**Status Code:** 200 OK
+```json
+{
+    "status": "success"
+}
+```
+
+#### Resposta de Erro
+**Status Code:** 400 Bad Request
+```json
+{
+    "erro": "Mensagem de erro específica"
+}
+```
+
 ## Status Codes
 
 - `200 OK`: Requisição bem-sucedida
@@ -163,6 +188,8 @@ O cliente pode pagar o boleto de três formas:
 2. O pagamento é confirmado automaticamente pelo Stripe
 3. Use as chaves de teste (`sk_test_` e `pk_test_`) para desenvolvimento
 4. Em produção, use as chaves reais (`sk_live_` e `pk_live_`)
+5. A API está configurada com CORS habilitado para todas as origens
+6. Todas as chaves do Stripe devem ser configuradas via variáveis de ambiente
 
 ## Exemplos de Uso
 
