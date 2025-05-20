@@ -213,5 +213,53 @@ def webhook():
     except Exception as e:
         return jsonify({'erro': str(e)}), 400
 
+
+@app.route('/simular-pagamento/<boleto_id>', methods=['POST'])
+def simular_pagamento(boleto_id):
+    try:
+        print(f"=== SIMULANDO PAGAMENTO DO BOLETO {boleto_id} ===")
+        
+        # Buscar o PaymentIntent no Stripe
+        payment_intent = stripe.PaymentIntent.retrieve(boleto_id)
+        
+        # Simular o pagamento
+        payment_intent = stripe.PaymentIntent.modify(
+            boleto_id,
+            status='succeeded',
+            metadata={'simulado': 'true'}
+        )
+        
+        # Criar uma charge simulada
+        charge = stripe.Charge.create(
+            amount=payment_intent.amount,
+            currency=payment_intent.currency,
+            payment_method=payment_intent.payment_method,
+            payment_intent=boleto_id,
+            metadata={'simulado': 'true'}
+        )
+        
+        print("=== PAGAMENTO SIMULADO COM SUCESSO ===")
+        print(f"PaymentIntent ID: {payment_intent.id}")
+        print(f"Status: {payment_intent.status}")
+        print(f"Charge ID: {charge.id}")
+        
+        return jsonify({
+            'status': 'succeeded',
+            'payment_intent_id': payment_intent.id,
+            'charge_id': charge.id,
+            'data_aprovacao': datetime.now().isoformat(),
+            'debug_info': {
+                'payment_intent_status': payment_intent.status,
+                'has_charges': True,
+                'charge_status': charge.status,
+                'is_paid': True
+            }
+        })
+        
+    except Exception as e:
+        print(f"=== ERRO AO SIMULAR PAGAMENTO ===")
+        print(f"Erro: {str(e)}")
+        return jsonify({'erro': str(e)}), 400 
+    
 if __name__ == '__main__':
     app.run(debug=True) 
