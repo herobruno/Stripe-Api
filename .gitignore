@@ -1,0 +1,15 @@
+# Arquivos de credenciais
+serviceAccountKey.json
+
+# Arquivos Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambiente virtual
+venv/
+env/
+.env
+
+# Logs
+*.log 
