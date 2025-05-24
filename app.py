@@ -12,9 +12,11 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from routes.webhook_opencode import init_webhook_routes
 from routes.software_personalizado import init_software_personalizado_routes
+from routes.mensalidade import init_mensalidade_routes
 from tests.webhook_test import init_webhook_tests
 from tests.payment_test import init_payment_tests
 from tests.software_personalizado_test import init_webhook_tests as init_software_tests
+from tests.mensalidade_test import init_mensalidade_tests
 
 print("\n=== INICIALIZANDO FIREBASE ===")
 try:
@@ -56,9 +58,11 @@ print("Chave pública:", STRIPE_PUBLIC_KEY[:10] + "...")
 # Inicializa as rotas do webhook
 init_webhook_routes(app, db)
 init_software_personalizado_routes(app, db)
+init_mensalidade_routes(app, db)
 init_webhook_tests(app, db)
 init_payment_tests(app)
 init_software_tests(app, db)
+init_mensalidade_tests(app, db)
 
 @app.route('/gerar-boleto', methods=['POST'])
 def gerar_boleto():
