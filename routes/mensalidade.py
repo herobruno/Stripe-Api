@@ -4,10 +4,10 @@ from firebase_admin import firestore
 import os
 import stripe
 from dotenv import load_dotenv
+import json
 
 # Carregar variáveis do .env
 load_dotenv()
-
 
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
@@ -18,15 +18,39 @@ def init_mensalidade_routes(app, db):
             print("\n=== Novo Webhook Recebido ===")
             print("Dados recebidos:", request.get_data(as_text=True))
             
-            # Extrair dados do payload
-            payload = request.json
-            print("Payload:", payload)
+            # Verificação de assinatura desativada em desenvolvimento
+            # try:
+            #     signature = request.headers.get('stripe-signature')
+            #     if not signature:
+            #         print('❌ Assinatura não encontrada nos headers')
+            #         return jsonify({'erro': 'Assinatura não encontrada'}), 400
+
+            #     event = stripe.Webhook.construct_event(
+            #         request.data,
+            #         signature,
+            #         os.getenv('STRIPE_WEBHOOK_SECRET')
+            #     )
+            #     print('✅ Assinatura do webhook válida')
+            # except stripe.error.SignatureVerificationError as e:
+            #     print('❌ Assinatura do webhook inválida:', str(e))
+            #     return jsonify({'erro': 'Assinatura inválida'}), 400
             
-            # Extrair metadados do evento
-            metadata = payload.get('data', {}).get('object', {}).get('metadata', {})
-            if not metadata:
-                metadata = payload.get('metadata', {})  # Fallback para payload direto
-                
+            event = json.loads(request.data)
+            print('⚠️ Verificação de assinatura DESATIVADA em ambiente de desenvolvimento')
+            
+            # Verificar se é o evento de pagamento bem-sucedido
+            if event['type'] != 'payment_intent.succeeded':
+                print(f"Evento ignorado: {event['type']}")
+                return jsonify({"mensagem": "Evento ignorado"}), 200
+            
+            print("✅ Evento payment_intent.succeeded recebido")
+            
+            # Extrair dados do pagamento
+            payment_intent = event['data']['object']
+            print("Dados do pagamento:", payment_intent)
+            
+            # Extrair metadados do pagamento
+            metadata = payment_intent.get('metadata', {})
             print("Metadados extraídos:", metadata)
             
             fatura_id = metadata.get('fatura_id')
@@ -53,13 +77,15 @@ def init_mensalidade_routes(app, db):
                 if fatura.get('id') == fatura_id:
                     fatura['status'] = 'pago'
                     fatura['dataPagamento'] = datetime.now().strftime('%d/%m/%Y')
+                    fatura['paymentIntentId'] = payment_intent.get('id')
+                    fatura['valorPago'] = payment_intent.get('amount') / 100  # Converte de centavos para reais
                     fatura_encontrada = True
                     print(f"Fatura {fatura_id} encontrada e atualizada")
                     break
             
             if not fatura_encontrada:
                 print(f"Erro: Fatura não encontrada - ID: {fatura_id}")
-                return jsonify({"erro": "Fatura não encontrada"}), 404
+                return jsonify({"erro": "Fatura não encontrado"}), 404
                 
             # Atualizar o documento do cliente
             cliente_ref.update({
@@ -72,4 +98,6 @@ def init_mensalidade_routes(app, db):
             
         except Exception as e:
             print("Erro ao processar webhook:", str(e))
+            print('Detalhes do erro:', e.__class__.__name__)
+            print('Stack trace:', e.__traceback__)
             return jsonify({"erro": str(e)}), 500

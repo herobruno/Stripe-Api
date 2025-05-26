@@ -3,64 +3,86 @@ import stripe
 import os
 from datetime import datetime
 from firebase_admin import firestore
+from dotenv import load_dotenv
+
+# Carregar variáveis do .env
+load_dotenv()
+
+# Configurar a chave do Stripe
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 def init_software_personalizado_routes(app, db):
     @app.route('/webhook/software-personalizado', methods=['POST'])
     def webhook_software_personalizado():
         try:
-            # Em ambiente de teste, não verificamos a assinatura
-            if os.getenv('ENVIRONMENT') == 'test':
-                event = request.json
-            else:
-                # Em produção, verificamos a assinatura do Stripe
+            print("\n=== Novo Webhook Software Personalizado Recebido ===")
+            print("Dados recebidos:", request.get_data(as_text=True))
+            
+            # Verificar a assinatura do webhook
+            try:
                 event = stripe.Webhook.construct_event(
                     request.data,
-                    request.headers.get('Stripe-Signature'),
+                    request.headers['Stripe-Signature'],
                     os.getenv('STRIPE_WEBHOOK_SECRET')
                 )
+                print('✅ Assinatura do webhook válida')
+            except stripe.error.SignatureVerificationError as e:
+                print('❌ Assinatura do webhook inválida:', str(e))
+                return jsonify({'erro': 'Assinatura inválida'}), 400
 
-            # Processar apenas eventos de pagamento
-            if event.get('type', '').startswith('payment_intent.'):
-                payment_intent = event.get('data', {}).get('object', {})
-                
-                # Extrair metadados
-                metadata = payment_intent.get('metadata', {})
-                projectId = metadata.get('projectId')
-                projectName = metadata.get('projectName')
-                
-                if not projectId or not projectName:
-                    return jsonify({'erro': 'Metadados inválidos'}), 400
+            # Verificar se é o evento de pagamento bem-sucedido
+            if event['type'] != 'payment_intent.succeeded':
+                print(f"Evento ignorado: {event['type']}")
+                return jsonify({"mensagem": "Evento ignorado"}), 200
+            
+            print("✅ Evento payment_intent.succeeded recebido")
+            
+            # Extrair dados do pagamento
+            payment_intent = event['data']['object']
+            print("Dados do pagamento:", payment_intent)
+            
+            # Extrair metadados
+            metadata = payment_intent.get('metadata', {})
+            print("Metadados extraídos:", metadata)
+            
+            projectId = metadata.get('projectId')
+            projectName = metadata.get('projectName')
+            
+            if not projectId or not projectName:
+                print("Erro: Metadados incompletos - projectId ou projectName não encontrados")
+                return jsonify({'erro': 'Metadados inválidos'}), 400
 
-                # Buscar projeto no Firestore
-                software_ref = db.collection('software_personalizado')
-                projeto_query = software_ref.where(
-                    field_path='clienteId',
-                    op_string='==',
-                    value=projectId
-                ).where(
-                    field_path='nomeProjeto',
-                    op_string='==',
-                    value=projectName
-                ).get()
+            # Buscar projeto no Firestore
+            software_ref = db.collection('software_personalizado')
+            projeto_query = software_ref.where(
+                field_path='clienteId',
+                op_string='==',
+                value=projectId
+            ).where(
+                field_path='nomeProjeto',
+                op_string='==',
+                value=projectName
+            ).get()
 
-                if not projeto_query:
-                    return jsonify({'erro': 'Projeto não encontrado'}), 404
+            if not projeto_query:
+                print(f"Erro: Projeto não encontrado - ID: {projectId}, Nome: {projectName}")
+                return jsonify({'erro': 'Projeto não encontrado'}), 404
 
-                # Atualizar status do pagamento
-                for doc in projeto_query:
-                    if event.get('type') == 'payment_intent.succeeded':
-                        doc.reference.update({
-                            'status_pagamento': 'Pago',
-                            'data_pagamento': datetime.now().isoformat()
-                        })
-                    elif event.get('type') == 'payment_intent.canceled':
-                        doc.reference.update({
-                            'status_pagamento': 'Cancelado',
-                            'data_cancelamento': datetime.now().isoformat()
-                        })
+            # Atualizar status do pagamento
+            for doc in projeto_query:
+                doc.reference.update({
+                    'status_pagamento': 'Pago',
+                    'data_pagamento': datetime.now().isoformat(),
+                    'paymentIntentId': payment_intent.get('id'),
+                    'valorPago': payment_intent.get('amount') / 100  # Converte de centavos para reais
+                })
+                print(f"✅ Projeto {projectName} atualizado com sucesso")
 
-                return jsonify({'status': 'success'})
+            print("=== Webhook Processado com Sucesso ===\n")
+            return jsonify({'status': 'success'})
 
         except Exception as e:
             print('❌ Erro no webhook:', str(e))
-            return jsonify({'erro': str(e)}), 400
+            print('Detalhes do erro:', e.__class__.__name__)
+            print('Stack trace:', e.__traceback__)
+            return jsonify({'erro': str(e)}), 500
