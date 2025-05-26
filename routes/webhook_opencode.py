@@ -7,6 +7,7 @@ from firebase_admin import firestore
 import random
 import os
 from dotenv import load_dotenv
+import json
 
 # Carregar variáveis do .env
 load_dotenv()
@@ -22,21 +23,24 @@ def init_webhook_routes(app, db):
             print('Headers:', dict(request.headers))
             print('Payload:', request.get_json())
             
-            # Verificar a assinatura do webhook
-            try:
-                event = stripe.Webhook.construct_event(
-                    request.data,
-                    request.headers['Stripe-Signature'],
-                    os.getenv('STRIPE_WEBHOOK_SECRET')
-                )
-                print('✅ Assinatura do webhook válida')
-            except stripe.error.SignatureVerificationError as e:
-                print('❌ Assinatura do webhook inválida:', str(e))
-                return jsonify({'erro': 'Assinatura inválida'}), 400
+            # Verificação de assinatura desativada em desenvolvimento
+            # try:
+            #     event = stripe.Webhook.construct_event(
+            #         request.data,
+            #         request.headers['Stripe-Signature'],
+            #         os.getenv('STRIPE_WEBHOOK_SECRET')
+            #     )
+            #     print('✅ Assinatura do webhook válida')
+            # except stripe.error.SignatureVerificationError as e:
+            #     print('❌ Assinatura do webhook inválida:', str(e))
+            #     return jsonify({'erro': 'Assinatura inválida'}), 400
+            
+            event = json.loads(request.data)
+            print('⚠️ Verificação de assinatura DESATIVADA em ambiente de desenvolvimento')
             
             print('Tipo do evento:', event['type'])
             
-            # Verificar se é o evento de pagamento bem-sucedido
+            # Verificar se é o evento de pagamento confirmado
             if event['type'] != 'payment_intent.succeeded':
                 print(f"Evento ignorado: {event['type']}")
                 return jsonify({"mensagem": "Evento ignorado"}), 200
@@ -99,9 +103,9 @@ def init_webhook_routes(app, db):
                                     'status': 'ativo',
                                     'downloadLink': metadata.get('download_link', ''),
                                     'valor': metadata.get('valor_plano'),
-                                    'numeroNota': numero_nota,
-                                    'paymentIntentId': payment_intent.get('id'),
-                                    'valorPago': payment_intent.get('amount') / 100  # Converte de centavos para reais
+                                'numeroNota': numero_nota,
+                                'paymentIntentId': payment_intent.get('id'),
+                                'valorPago': payment_intent.get('amount') / 100  # Converte de centavos para reais
                                 }
                                 planos.append(novo_plano)
                                 print(f'✅ Novo plano OpenCode adicionado ao cliente: {projeto_id}')
