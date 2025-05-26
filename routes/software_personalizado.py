@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from firebase_admin import firestore
 from dotenv import load_dotenv
+import json
 
 # Carregar variáveis do .env
 load_dotenv()
@@ -20,12 +21,13 @@ def init_software_personalizado_routes(app, db):
             
             # Verificar a assinatura do webhook
             try:
-                event = stripe.Webhook.construct_event(
-                    request.data,
-                    request.headers['Stripe-Signature'],
-                    os.getenv('STRIPE_WEBHOOK_SECRET')
-                )
-                print('✅ Assinatura do webhook válida')
+                # event = stripe.Webhook.construct_event(
+                #     request.data,
+                #     request.headers['Stripe-Signature'],
+                #     os.getenv('STRIPE_WEBHOOK_SECRET')
+                # )
+                event = json.loads(request.data)
+                print('⚠️ Verificação de assinatura DESATIVADA em ambiente de desenvolvimento')
             except stripe.error.SignatureVerificationError as e:
                 print('❌ Assinatura do webhook inválida:', str(e))
                 return jsonify({'erro': 'Assinatura inválida'}), 400

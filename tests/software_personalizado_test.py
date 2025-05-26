@@ -27,39 +27,36 @@ def init_webhook_tests(app, db):
         try:
             print('=== TESTANDO WEBHOOK SOFTWARE PERSONALIZADO ===')
             
-            # IDs reais do projeto
-            projeto_id = 'feijao'
+            # Dados reais do projeto
+            projeto_id = 'Carlinhos maia'
             cliente_id = 'MaiNCXusd8iuPpczSTKj'
             
-            # Dados reais do projeto
             projeto_mock = {
                 'clienteId': cliente_id,
                 'nomeProjeto': projeto_id,
-                'clienteCpfCnpj': '186.678.940-60',
+                'clienteCpfCnpj': '18667894060',
                 'clienteEmail': 'favio@gmail.com',
                 'clienteNome': 'favio',
                 'clienteTelefone': '5594823462',
                 'createdAt': datetime.now(),
-                'dataReuniao': datetime(2025, 5, 31, 11, 0),
-                'horaReuniao': '11:00',
-                'numeroNota': 'INV-6760-2025',
+                'dataReuniao': datetime.fromtimestamp(1747312200),
+                'horaReuniao': '09:30',
+                'numeroNota': 'INV-9151-2025',
                 'status': 'Em Produção',
                 'status_pagamento': 'Pendente',
-                'valor': 1222
+                'valor': 2222
             }
 
             cliente_mock = {
                 'nome': 'favio',
                 'email': 'favio@gmail.com',
                 'telefone': '5594823462',
-                'cpfCnpj': '186.678.940-60'
+                'cpfCnpj': '18667894060'
             }
 
             # Criar dados de teste no Firestore
             print('\n=== CRIANDO DADOS DE TESTE NO FIRESTORE ===')
             
-            # Criar projeto de teste
-            print('1. Criando projeto de teste...')
             software_ref = db.collection('software_personalizado')
             projeto_query = software_ref.where(
                 field_path='clienteId',
@@ -77,8 +74,6 @@ def init_webhook_tests(app, db):
             else:
                 print('ℹ️ Projeto de teste já existe')
 
-            # Criar cliente de teste
-            print('2. Criando cliente de teste...')
             cliente_ref = db.collection('clientes').document(cliente_id)
             cliente_doc = cliente_ref.get()
             
@@ -90,8 +85,9 @@ def init_webhook_tests(app, db):
 
             resultados_teste = []
 
-            # 1. Teste de pagamento bem-sucedido
+            # Simular evento de pagamento com sucesso
             print('\n1. Testando pagamento bem-sucedido...')
+
             payload_sucesso = {
                 'type': 'payment_intent.succeeded',
                 'data': {
@@ -100,12 +96,12 @@ def init_webhook_tests(app, db):
                         'metadata': {
                             'projectId': cliente_id,
                             'projectName': projeto_id,
-                            'cliente_cpf_cnpj': '186.678.940-60',
+                            'cliente_cpf_cnpj': '18667894060',
                             'cliente_email': 'favio@gmail.com',
-                            'valor': 1222
+                            'valor': 2222
                         },
                         'status': 'succeeded',
-                        'amount': 122200,  # Valor em centavos
+                        'amount': 222200,
                         'currency': 'brl'
                     }
                 }
@@ -119,6 +115,7 @@ def init_webhook_tests(app, db):
                     'Stripe-Signature': get_stripe_signature(payload_sucesso)
                 }
             )
+
             resultados_teste.append({
                 'cenario': 'Pagamento bem-sucedido',
                 'status': response_sucesso.status_code,
@@ -158,6 +155,4 @@ def init_webhook_tests(app, db):
 
         except Exception as e:
             print('❌ Erro ao testar webhook:', str(e))
-            print('Detalhes do erro:', e.__class__.__name__)
-            print('Stack trace:', e.__traceback__)
-            return jsonify({'erro': str(e)}), 400   
+            return jsonify({'erro': str(e)}), 400
