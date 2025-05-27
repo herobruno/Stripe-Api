@@ -14,7 +14,7 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 def init_mensalidade_routes(app, db):
     @app.route('/webhook-mensal', methods=['POST'])
-    def webhook_boleto():
+    def webhook_mensalidade():
         try:
             print("\n=== Novo Webhook Recebido ===")
             print("Dados recebidos:", request.get_data(as_text=True))
