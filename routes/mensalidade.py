@@ -5,6 +5,7 @@ import os
 import stripe
 from dotenv import load_dotenv
 import json
+from config import STRIPE_WEBHOOK_SECRET_MENSAL
 
 # Carregar variáveis do .env
 load_dotenv()
@@ -27,7 +28,7 @@ def init_mensalidade_routes(app, db):
                 event = stripe.Webhook.construct_event(
                     request.data,
                     signature,
-                    os.getenv('STRIPE_WEBHOOK_SECRET')
+                    STRIPE_WEBHOOK_SECRET_MENSAL
                 )
                 print('✅ Assinatura do webhook válida')
             except stripe.error.SignatureVerificationError as e:

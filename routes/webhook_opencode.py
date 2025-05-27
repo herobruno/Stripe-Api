@@ -8,6 +8,7 @@ import random
 import os
 from dotenv import load_dotenv
 import json
+from config import STRIPE_WEBHOOK_SECRET_OPENCODE
 
 # Carregar variáveis do .env
 load_dotenv()
@@ -23,12 +24,11 @@ def init_webhook_routes(app, db):
             print('Headers:', dict(request.headers))
             print('Payload:', request.get_json())
             
-           
             try:
                 event = stripe.Webhook.construct_event(
                     request.data,
                     request.headers['Stripe-Signature'],
-                    os.getenv('STRIPE_WEBHOOK_SECRET')
+                    STRIPE_WEBHOOK_SECRET_OPENCODE
                 )
                 print('✅ Assinatura do webhook válida')
             except stripe.error.SignatureVerificationError as e:

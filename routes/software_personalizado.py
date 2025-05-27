@@ -1,10 +1,14 @@
 from flask import jsonify, request
 import stripe
-import os
+import time
+import traceback
 from datetime import datetime
 from firebase_admin import firestore
+import random
+import os
 from dotenv import load_dotenv
 import json
+from config import STRIPE_WEBHOOK_SECRET_PERSONALIZADO
 
 # Carregar variáveis do .env
 load_dotenv()
@@ -13,20 +17,20 @@ load_dotenv()
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 def init_software_personalizado_routes(app, db):
-    @app.route('/webhook/software-personalizado', methods=['POST'])
-    def webhook_software_personalizado():
+    @app.route('/webhook-software-personalizado', methods=['POST'])
+    def webhook_pagamento():
         try:
-            print("\n=== Novo Webhook Software Personalizado Recebido ===")
-            print("Dados recebidos:", request.get_data(as_text=True))
+            print('\n=== WEBHOOK PAGAMENTO RECEBIDO ===')
+            print('Headers:', dict(request.headers))
+            print('Payload:', request.get_json())
             
-           
             try:
-                 event = stripe.Webhook.construct_event(
-                     request.data,
-                     request.headers['Stripe-Signature'],
-                     os.getenv('STRIPE_WEBHOOK_SECRET')
-                 )
-                
+                event = stripe.Webhook.construct_event(
+                    request.data,
+                    request.headers['Stripe-Signature'],
+                    STRIPE_WEBHOOK_SECRET_PERSONALIZADO
+                )
+                print('✅ Assinatura do webhook válida')
             except stripe.error.SignatureVerificationError as e:
                 print('❌ Assinatura do webhook inválida:', str(e))
                 return jsonify({'erro': 'Assinatura inválida'}), 400
