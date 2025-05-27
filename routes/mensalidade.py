@@ -18,25 +18,23 @@ def init_mensalidade_routes(app, db):
             print("\n=== Novo Webhook Recebido ===")
             print("Dados recebidos:", request.get_data(as_text=True))
             
-            # Verificação de assinatura desativada em desenvolvimento
-            # try:
-            #     signature = request.headers.get('stripe-signature')
-            #     if not signature:
-            #         print('❌ Assinatura não encontrada nos headers')
-            #         return jsonify({'erro': 'Assinatura não encontrada'}), 400
+            try:
+                signature = request.headers.get('stripe-signature')
+                if not signature:
+                    print('❌ Assinatura não encontrada nos headers')
+                    return jsonify({'erro': 'Assinatura não encontrada'}), 400
 
-            #     event = stripe.Webhook.construct_event(
-            #         request.data,
-            #         signature,
-            #         os.getenv('STRIPE_WEBHOOK_SECRET')
-            #     )
-            #     print('✅ Assinatura do webhook válida')
-            # except stripe.error.SignatureVerificationError as e:
-            #     print('❌ Assinatura do webhook inválida:', str(e))
-            #     return jsonify({'erro': 'Assinatura inválida'}), 400
+                event = stripe.Webhook.construct_event(
+                    request.data,
+                    signature,
+                    os.getenv('STRIPE_WEBHOOK_SECRET')
+                )
+                print('✅ Assinatura do webhook válida')
+            except stripe.error.SignatureVerificationError as e:
+                print('❌ Assinatura do webhook inválida:', str(e))
+                return jsonify({'erro': 'Assinatura inválida'}), 400
             
-            event = json.loads(request.data)
-            print('⚠️ Verificação de assinatura DESATIVADA em ambiente de desenvolvimento')
+            
             
             # Verificar se é o evento de pagamento bem-sucedido
             if event['type'] != 'payment_intent.succeeded':

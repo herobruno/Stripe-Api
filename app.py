@@ -5,6 +5,7 @@ import time
 import traceback
 import json
 import requests
+import base64
 from datetime import datetime, timedelta
 from flask_cors import CORS
 from config import STRIPE_SECRET_KEY, STRIPE_PUBLIC_KEY
@@ -18,11 +19,22 @@ from tests.payment_test import init_payment_tests
 from tests.software_personalizado_test import init_webhook_tests as init_software_tests
 from tests.mensalidade_test import init_mensalidade_tests
 
+
+
 print("\n=== INICIALIZANDO FIREBASE ===")
 try:
-    # Inicializa o Firebase Admin
-    cred = credentials.Certificate('serviceAccountKey.json')
-    print("✅ Credenciais carregadas do arquivo serviceAccountKey.json")
+    # Obtém as credenciais da variável de ambiente
+    firebase_credentials = os.getenv('FIREBASE_CREDENTIALS')
+    if not firebase_credentials:
+        raise ValueError("Variável de ambiente FIREBASE_CREDENTIALS não encontrada")
+    
+    # Decodifica as credenciais base64
+    cred_json = base64.b64decode(firebase_credentials).decode('utf-8')
+    cred_dict = json.loads(cred_json)
+    
+    # Inicializa o Firebase Admin com as credenciais
+    cred = credentials.Certificate(cred_dict)
+    print("✅ Credenciais carregadas da variável de ambiente")
     
     app = firebase_admin.initialize_app(cred, {
         'projectId': 'empresa-fe1a8',

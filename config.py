@@ -1,3 +1,10 @@
+import os
+from dotenv import load_dotenv
+
+# Carrega as variáveis do arquivo .env
+load_dotenv()
+
 # Configurações do Stripe
-STRIPE_SECRET_KEY = 'sk_test_51RP9IsKufbd3YkTDIJyCSiKCCIbXqvdNb5aMKOcaSL51h42KUA3VQKr1K7CWVAEgWACtbWNM9O4m07EZqAEATAJK00DeSLhVqF'
-STRIPE_PUBLIC_KEY = 'pk_test_51RP9IsKufbd3YkTDhKKjbgNyIaSjRo11MRc3XaX9LEnSWQrbu8gUZIA0YfCX8YU7hukXWWksE1JquxO6UUzuGoGZ00MJLxadtG' 
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET') 

@@ -23,20 +23,19 @@ def init_webhook_routes(app, db):
             print('Headers:', dict(request.headers))
             print('Payload:', request.get_json())
             
-            # Verificação de assinatura desativada em desenvolvimento
-            # try:
-            #     event = stripe.Webhook.construct_event(
-            #         request.data,
-            #         request.headers['Stripe-Signature'],
-            #         os.getenv('STRIPE_WEBHOOK_SECRET')
-            #     )
-            #     print('✅ Assinatura do webhook válida')
-            # except stripe.error.SignatureVerificationError as e:
-            #     print('❌ Assinatura do webhook inválida:', str(e))
-            #     return jsonify({'erro': 'Assinatura inválida'}), 400
+           
+            try:
+                event = stripe.Webhook.construct_event(
+                    request.data,
+                    request.headers['Stripe-Signature'],
+                    os.getenv('STRIPE_WEBHOOK_SECRET')
+                )
+                print('✅ Assinatura do webhook válida')
+            except stripe.error.SignatureVerificationError as e:
+                print('❌ Assinatura do webhook inválida:', str(e))
+                return jsonify({'erro': 'Assinatura inválida'}), 400
             
-            event = json.loads(request.data)
-            print('⚠️ Verificação de assinatura DESATIVADA em ambiente de desenvolvimento')
+            
             
             print('Tipo do evento:', event['type'])
             
