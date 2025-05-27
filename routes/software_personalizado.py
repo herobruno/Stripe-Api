@@ -18,7 +18,7 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 def init_software_personalizado_routes(app, db):
     @app.route('/webhook-software-personalizado', methods=['POST'])
-    def webhook_pagamento():
+    def software_personalizado():
         try:
             print('\n=== WEBHOOK PAGAMENTO RECEBIDO ===')
             print('Headers:', dict(request.headers))

@@ -18,7 +18,7 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 def init_webhook_routes(app, db):
     @app.route('/webhook-opencode', methods=['POST'])
-    def webhook_pagamento():
+    def opencode():
         try:
             print('\n=== WEBHOOK PAGAMENTO RECEBIDO ===')
             print('Headers:', dict(request.headers))
