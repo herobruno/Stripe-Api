@@ -89,6 +89,7 @@ def gerar_boleto():
         nome = data.get('nome')
         cpf = data.get('cpf')
         descricao = data.get('descricao', 'Pagamento via Boleto')
+        metadata = data.get('metadata', {})  # Obtém o metadata do payload
         
         # Dados do endereço
         endereco = data.get('endereco', {})
@@ -115,6 +116,8 @@ def gerar_boleto():
         cep_limpo = cep.replace('-', '')
         
         print("\n=== CRIANDO PAGAMENTO ===")
+        print("Metadata que será enviado:", metadata)  # Log do metadata
+        
         # Cria o pagamento do boleto
         payment_intent = stripe.PaymentIntent.create(
             amount=int(float(valor) * 100),  # Valor em centavos
@@ -139,9 +142,11 @@ def gerar_boleto():
                 }
             },
             description=descricao,
+            metadata=metadata,  # Adiciona o metadata ao PaymentIntent
             confirm=True
         )
         print("Pagamento criado:", payment_intent.id)
+        print("Metadata do PaymentIntent:", payment_intent.metadata)  # Log do metadata do PaymentIntent
 
         # Obtém os detalhes do boleto corretamente
         boleto_display = payment_intent.next_action['boleto_display_details']
@@ -155,6 +160,7 @@ def gerar_boleto():
             'data_vencimento': (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'),
             'status': payment_intent.status,
             'public_key': STRIPE_PUBLIC_KEY,
+            'metadata': payment_intent.metadata,  # Inclui o metadata na resposta
             'instrucoes': [
                 '1. Copie o código de barras ou linha digitável',
                 '2. Pague em qualquer banco ou lotérica',
@@ -182,7 +188,7 @@ def gerar_boleto():
         return jsonify({
             'erro': 'Erro interno do servidor',
             'detalhes': str(e)
-        }), 500
+        }), 500 
 
 @app.route('/verificar-boleto/<boleto_id>', methods=['GET'])
 def verificar_boleto(boleto_id):
